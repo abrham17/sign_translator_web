@@ -12,19 +12,17 @@ def upload_view(request):
     temp_image_url = None
 
     if request.method == 'POST':
-        # Get uploaded file
         image_file = request.FILES.get('image')
-        
         if image_file:
             try:
                 # Save temporarily
                 temp_path = default_storage.save(f'tmp/{image_file.name}', image_file)
                 
-                # Call API app
-                api_url = f'http://localhost:8000/api/process-image/'
-                files = {'image': open(default_storage.path(temp_path), 'rb')}
-                
-                response = requests.post(api_url, files=files)
+                # Open the file safely with a context manager
+                with open(default_storage.path(temp_path), 'rb') as f:
+                    # Call API
+                    api_url = 'http://localhost:8000/api/process-image/'
+                    response = requests.post(api_url, files={'image': f})
                 
                 if response.status_code == 200:
                     result = response.json().get('result')
@@ -32,11 +30,11 @@ def upload_view(request):
                 else:
                     error = "API processing failed"
                 
-                # Clean up temp file
-                default_storage.delete(temp_path)
+
                 
             except Exception as e:
                 error = f"Error processing image: {str(e)}"
+                
 
     return render(request, 'home.html', {
         'result': result,
