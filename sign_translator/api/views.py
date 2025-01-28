@@ -1,36 +1,39 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework import status
-from .models import VideoTranslation
-from .serializers import VideoTranslationSerializer
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import torch
+from PIL import Image
 
-# Load your trained model
-MODEL_PATH = "slt/signjoey/model.py"
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = torch.load(MODEL_PATH, map_location=torch.device(device))
-model.eval()
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def process_video(file_path):
-
-    dummy_features = torch.randn(1, 128, 512)
-    with torch.no_grad():
-        output = model(dummy_features)
-    return output
-
-class VideoTranslationView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
-
-    def post(self, request, *args, **kwargs):
-        file = request.FILES['file']
-        video_instance = VideoTranslation(video=file)
-        video_instance.save()
-
-        # Process the video and get translation
-        translation = process_video(video_instance.video.path)
-        video_instance.translation = str(translation)
-        video_instance.save()
-
-        serializer = VideoTranslationSerializer(video_instance)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+@csrf_exempt  # Disable CSRF for API endpoint
+def process_image(request):
+    if request.method == 'POST' and request.FILES.get('image'):
+        try:
+            # Get uploaded image
+            image_file = request.FILES['image']
+            
+            # Process image
+            image = Image.open(image_file)
+            
+            # Add your translation logic here
+            # Example:
+            # result = your_model.predict(image)
+            
+            # Dummy result
+            result = "Sample translation result"
+            
+            return JsonResponse({
+                'status': 'success',
+                'result': result
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request'
+    }, status=400)
