@@ -1,2 +1,2 @@
-from django.test import TestCase
-
+##pip install djangorestframework
+##pip install djangorestframework
