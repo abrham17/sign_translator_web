@@ -37,7 +37,8 @@
         width: auto;
       }
     }
-    .translation-box img, .translation-box video {
+    .translation-box-img,
+    .translation-box-video {
       max-width: 100%;
       height: auto;
     }
@@ -47,7 +48,6 @@
   </style>
 </head>
 <body>
-
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
       <a class="navbar-brand" href="{% url 'upload' %}">SignLang</a>
@@ -63,13 +63,6 @@
     </div>
   </nav>
 
-  <section class="hero">
-    <div class="container">
-      <h1>Bridging the Gap with Sign Language Translation</h1>
-      <p>Empowering communication through AI-powered sign language translation</p>
-    </div>
-  </section>
-
   <section id="translate" class="translate-section">
     <div class="container">
       <h2 class="text-center">Sign Language Translation</h2>
@@ -81,80 +74,94 @@
         <button type="button" class="btn btn-secondary" id="image-input">Image</button>
       </div>
 
-      <div class="translation-box mt-4">
-        <!-- Image Upload Form -->
-        <div id="image-section" class="d-none">
-          <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="file" 
-                   name="image" 
-                   class="form-control" 
-                   accept="image/*"
-                   required>
-            <button type="submit" class="btn btn-primary mt-3">Translate Image</button>
-          </form>
-        </div>
-
-        <!-- Webcam Section -->
-        <div id="webcam-section" class="webcam-container d-none">
-          <video id="webcam-video" autoplay></video>
-        </div>
-
-        <!-- Results Display -->
-        {% if error %}
-          <div class="alert alert-danger mt-3">{{ error }}</div>
-        {% endif %}
-
-        {% if result %}
-          <div class="mt-4 text-center">
-            <h3>Translation Result:</h3>
-            {% if temp_image_url %}
-              <img src="{{ temp_image_url }}" 
-                   alt="Uploaded Image" 
-                   class="img-fluid mb-3" 
-                   style="max-width: 500px;">
-            {% endif %}
-            <div class="alert alert-success">
-              <p class="lead mb-0">{{ result }}</p>
-            </div>
-          </div>
-        {% endif %}
+      <!-- Video Section -->
+      <div id="video-section" class="d-none mt-4">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="file" name="video" class="form-control" accept="video/*" required>
+          <button type="submit" class="btn btn-primary mt-3">Translate Video</button>
+        </form>
       </div>
+
+      <!-- Image Section -->
+      <div id="image-section" class="d-none mt-4">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="file" name="image" class="form-control" accept="image/*" required>
+          <button type="submit" class="btn btn-primary mt-3">Translate Image</button>
+        </form>
+      </div>
+
+      <!-- Webcam Section -->
+      <div id="webcam-section" class="d-none mt-4">
+        <video id="webcam-video" autoplay></video>
+      </div>
+
+      <!-- Results Display -->
+      {% if error %}
+      <div class="alert alert-danger mt-3">{{ error }}</div>
+      {% endif %}
+
+      {% if result %}
+      <div class="mt-4 text-center">
+        <h3>Translation Result:</h3>
+        {% if temp_image_url %}
+        <img src="{{ temp_image_url }}" alt="Uploaded Image" class="img-fluid mb-3" style="max-width: 500px;">
+        {% endif %}
+        <div class="alert alert-success">
+          <p class="lead mb-0">{{ result }}</p>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </section>
 
-
-
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
-    $(document).ready(function() {
-      // Section toggling
-      $('#image-input').click(function() {
-        $('.translation-box > div').addClass('d-none');
-        $('#image-section').removeClass('d-none');
-      });
+$(document).ready(function () {
+  let webcamStream; // To store the webcam stream
 
-      $('#webcam-input').click(function() {
-        $('.translation-box > div').addClass('d-none');
-        $('#webcam-section').removeClass('d-none');
-        
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-              document.getElementById('webcam-video').srcObject = stream;
-            })
-            .catch(function(err) {
-              alert("Error accessing webcam: " + err);
-            });
-        }
-      });
+  // Section toggling
+  $('#image-input').click(function () {
+    stopWebcam(); // Stop webcam when switching to another input
+    $("#video-section , #webcam-section").addClass('d-none');
+    $('#image-section').removeClass('d-none');
+  });
 
-      $('#video-input').click(function() {
-        alert("Video upload currently not supported");
-      });
-    });
+  $('#video-input').click(function () {
+    stopWebcam(); // Stop webcam when switching to another input
+    $("#image-section , #webcam-section").addClass('d-none');
+    $('#video-section').removeClass('d-none');
+  });
+
+  $('#webcam-input').click(function () {
+    $("#video-section , #image-section").addClass('d-none');
+    $('#webcam-section').removeClass('d-none');
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then(function (stream) {
+          webcamStream = stream; // Store the stream so it can be stopped later
+          document.getElementById('webcam-video').srcObject = stream;
+        })
+        .catch(function (err) {
+          alert('Error accessing webcam: ' + err);
+        });
+    }
+  });
+
+  // Function to stop the webcam stream
+  function stopWebcam() {
+    if (webcamStream) {
+      let tracks = webcamStream.getTracks();
+      tracks.forEach((track) => track.stop()); // Stop all video tracks
+      webcamStream = null;
+    }
+  }
+});
+
   </script>
 </body>
 </html>
